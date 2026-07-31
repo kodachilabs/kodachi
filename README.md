@@ -144,7 +144,7 @@ Not yet on Maven Central. Build and consume locally:
 
 ```kotlin
 dependencies {
-    implementation("dev.kodachi:kodachi:0.1.0")
+    implementation("io.github.kodachilabs:kodachi:0.1.0")
 }
 ```
 
@@ -174,17 +174,18 @@ minutes later with less detail.
 
 ### Step by step
 
-**1. Decide the namespace.** Central verifies you own it.
+**1. Verify the namespace.** The build publishes as `io.github.kodachilabs`, which Central
+verifies by proving you control that GitHub organisation:
 
-| Namespace | Verification |
-| --- | --- |
-| `io.github.<user>` | automatic — sign into the Portal with GitHub |
-| `dev.kodachi` | a DNS TXT record on `kodachi.dev`, which you must own |
+- Portal → Namespaces → Add `io.github.kodachilabs`
+- It gives you a generated repository name — create a public repo with that exact name under the
+  `kodachilabs` org, then click verify. The repo can be deleted afterwards.
 
-Pick with a property, no code change:
+The groupId and the Kotlin package are independent, so imports stay `dev.kodachi.*` regardless.
+If `kodachi.dev` is ever acquired, the coordinate can move with a flag and no code change:
 
 ```bash
-./gradlew :kodachi:centralBundle -PmavenGroup=io.github.saadaziz9956
+./gradlew :kodachi:centralBundle -PmavenGroup=dev.kodachi
 ```
 
 **2. Decide the version.** Central never lets a released version be replaced, and rejects
@@ -224,7 +225,7 @@ validate:
 unzip -l kodachi/build/central/kodachi-0.1.0-central-bundle.zip
 ```
 
-Expect, under `dev/kodachi/kodachi/0.1.0/`: the jar, sources jar, javadoc jar, `.pom`, `.module`,
+Expect, under `io/github/kodachilabs/kodachi/0.1.0/`: the jar, sources jar, javadoc jar, `.pom`, `.module`,
 a `.asc` for each, and `.md5`/`.sha1` for each. No `maven-metadata` — a bundle is not a deploy.
 
 **6. Upload.**
@@ -254,7 +255,7 @@ git tag -a v0.1.0 -m "kodachi 0.1.0" && git push origin v0.1.0
 Then it installs anywhere with:
 
 ```kotlin
-implementation("dev.kodachi:kodachi:0.1.0")
+implementation("io.github.kodachilabs:kodachi:0.1.0")
 ```
 
 ## API
@@ -508,7 +509,7 @@ done
 ```
 
 And to verify the *published artifact* rather than the source tree, consume it from a throwaway
-project with `mavenLocal()` on the repository list and `implementation("dev.kodachi:kodachi:0.1.0")`.
+project with `mavenLocal()` on the repository list and `implementation("io.github.kodachilabs:kodachi:0.1.0")`.
 That is the only check that catches a packaging mistake — a missing dependency in the POM, or a
 class that never made it into the jar.
 

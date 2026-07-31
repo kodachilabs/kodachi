@@ -68,7 +68,7 @@ publishing {
                     "Kotlin SDK for OpenAI Codex — a coroutines-first, typed JSON-RPC client " +
                         "for the codex app-server protocol.",
                 )
-                url.set("https://github.com/SaadAziz9956/kodachi")
+                url.set("https://github.com/kodachilabs/kodachi")
                 inceptionYear.set("2026")
 
                 licenses {
@@ -86,9 +86,9 @@ publishing {
                     }
                 }
                 scm {
-                    url.set("https://github.com/SaadAziz9956/kodachi")
-                    connection.set("scm:git:https://github.com/SaadAziz9956/kodachi.git")
-                    developerConnection.set("scm:git:ssh://git@github.com/SaadAziz9956/kodachi.git")
+                    url.set("https://github.com/kodachilabs/kodachi")
+                    connection.set("scm:git:https://github.com/kodachilabs/kodachi.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/kodachilabs/kodachi.git")
                 }
             }
         }

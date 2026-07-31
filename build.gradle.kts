@@ -4,10 +4,12 @@ plugins {
 }
 
 subprojects {
-    // Maven Central verifies namespace ownership. `dev.kodachi` requires a DNS TXT record on
-    // kodachi.dev; `io.github.saadaziz9956` is verified just by signing in with GitHub. Override
-    // without touching this file:  ./gradlew -PmavenGroup=io.github.saadaziz9956 …
-    group = providers.gradleProperty("mavenGroup").getOrElse("dev.kodachi")
+    // Maven Central verifies namespace ownership. `io.github.kodachilabs` is verified by
+    // proving control of that GitHub org. The package stays `dev.kodachi` — groupId and package
+    // are independent, so imports never carry the namespace, and if kodachi.dev is ever
+    // acquired the coordinate can move to `dev.kodachi` without touching a line of code.
+    // Override without editing this file:  ./gradlew -PmavenGroup=dev.kodachi …
+    group = providers.gradleProperty("mavenGroup").getOrElse("io.github.kodachilabs")
     version = providers.gradleProperty("mavenVersion").getOrElse("0.1.0")
 }
 
