@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("kodex", "samples")
+include("kodex", "cli", "samples")

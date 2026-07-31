@@ -380,6 +380,51 @@ subscribed. Both are principled, and both measured as noise — an uncontended m
 zero-subscriber `SharedFlow` were already nearly free. Recorded here so nobody re-does them
 expecting a win.
 
+## CLI
+
+A thin terminal wrapper over the SDK, for exercising it by hand:
+
+```bash
+./gradlew :cli:installDist
+export PATH="$PWD/cli/build/install/kodex/bin:$PATH"
+```
+
+```
+kodex doctor                  # binary, protocol, handshake, account — spends no quota
+kodex login                   # store an API key from $OPENAI_API_KEY or stdin
+kodex whoami                  # account + rate limits
+kodex models                  # models this account can use
+kodex chat "say hello"        # one turn, streamed, read-only
+kodex exec "add a README"     # one turn with writes, auto-approving
+kodex goal "make tests pass"  # a goal across as many turns as it takes
+```
+
+Flags: `--cwd`, `--model`, `--effort`, `--budget`, `--quiet`, and `--isolated` (a throwaway
+`CODEX_HOME`, so a test cannot touch your real credentials).
+
+Start with `kodex doctor` — it checks the binary, the protocol layer, the handshake and the
+account without spending a token, so a failure there is a setup problem rather than a code one.
+
+### Authenticating with an API key
+
+```bash
+export OPENAI_API_KEY=sk-...
+kodex login
+kodex chat "say hello"
+```
+
+A key is read from the environment or stdin, **never from a flag** — argv is readable by other
+processes and lands in shell history. The CLI never prints it.
+
+Two things worth knowing:
+
+- **`login` succeeding does not mean the key works.** The app-server stores a key without
+  validating it, so a bad key only surfaces on the first turn — as a `401` in the server's stderr
+  and a turn ending `FAILED`. Set `CodexConfig.onStderrLine` (the CLI does) or that diagnosis is
+  invisible.
+- **Storing a key replaces whatever was there**, including ChatGPT OAuth tokens. Use
+  `--isolated`, or `codex login` to switch back.
+
 ## Samples
 
 ```bash
