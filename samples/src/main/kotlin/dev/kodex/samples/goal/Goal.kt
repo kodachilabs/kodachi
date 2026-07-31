@@ -22,7 +22,7 @@ import kotlinx.coroutines.runBlocking
  * ./gradlew :samples:run -Psample=dev.kodex.samples.goal.GoalKt --args="/path/to/repo"
  * ```
  */
-fun main(args: Array<String>) = runBlocking {
+fun main(args: Array<String>): Unit = runBlocking {
     val workdir = args.firstOrNull() ?: System.getProperty("user.dir")
     val objective = args.drop(1).joinToString(" ").ifBlank {
         "Summarize what this project does, then list its three largest source files."

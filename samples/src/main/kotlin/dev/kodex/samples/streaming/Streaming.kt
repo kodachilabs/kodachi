@@ -22,7 +22,7 @@ import kotlinx.coroutines.runBlocking
  * ./gradlew :samples:run -Psample=dev.kodex.samples.StreamingKt
  * ```
  */
-fun main(args: Array<String>) = runBlocking {
+fun main(args: Array<String>): Unit = runBlocking {
     val workdir = args.firstOrNull() ?: System.getProperty("user.dir")
     val prompt = args.drop(1).joinToString(" ").ifBlank {
         "List the files in this directory and tell me what kind of project it is."

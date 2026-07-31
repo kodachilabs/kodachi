@@ -136,7 +136,7 @@ deliberate design decision here, not a mechanical sync.
 
 ## Install
 
-Not yet published. Build and consume locally:
+Not yet on Maven Central. Build and consume locally:
 
 ```bash
 ./gradlew :kodex:publishToMavenLocal
@@ -158,6 +158,49 @@ The SDK deliberately **does not bundle a binary**. It resolves, in order:
 `CodexConfig.codexBin` → `$CODEX_BIN` → `codex` on `PATH`. (The Python SDK pins a bundled
 binary, and installs stuck on an old pin cannot use newer models or reasoning efforts. This
 avoids that failure mode.)
+
+## Publishing
+
+The build is Central-ready — full POM, sources jar, javadoc jar, and GPG signing that switches
+on only when a key is present, so local publishing keeps working without one.
+
+Three things need your credentials, and one is a decision:
+
+**1. Pick a namespace.** Central verifies you own it. `dev.kodex` needs a DNS TXT record on
+`kodex.dev`; `io.github.<user>` is verified automatically when you sign in to the
+[Central Portal](https://central.sonatype.com) with GitHub. Switch without editing the build:
+
+```bash
+./gradlew publish -PmavenGroup=io.github.saadaziz9956
+```
+
+**2. Create a GPG key and publish the public half**, which is how Central verifies signatures:
+
+```bash
+gpg --quick-generate-key "Saad Aziz <saad.aziz@imagine.art>" rsa4096 sign never
+gpg --keyserver keys.openpgp.org --send-keys <KEY_ID>
+gpg --armor --export-secret-keys <KEY_ID> > private.asc   # never commit this
+```
+
+Feed it in through `~/.gradle/gradle.properties` (or `SIGNING_KEY` / `SIGNING_PASSWORD` in CI):
+
+```properties
+signingInMemoryKey=<contents of private.asc, newlines as \n>
+signingInMemoryKeyPassword=<passphrase>
+```
+
+**3. Generate a Portal token** (Central Portal → Account → Generate User Token) and upload. The
+Portal replaced the old OSSRH/Nexus flow, and it now validates Sigstore bundles alongside PGP.
+
+Verify locally before uploading anything — this produces exactly what Central will inspect:
+
+```bash
+./gradlew clean build :kodex:publishToMavenLocal
+ls ~/.m2/repository/dev/kodex/kodex/0.1.0/     # jar, sources, javadoc, pom, .asc signatures
+```
+
+A version ending in `-SNAPSHOT` is rejected, and a released version can never be replaced — so
+bump before re-uploading.
 
 ## API
 
@@ -350,9 +393,24 @@ expecting a win.
 ## Tests
 
 ```bash
-./gradlew test                              # unit tests, no binary needed
-./gradlew test -DcodexIntegration=true      # also drives a real codex (uses real quota)
+./gradlew test                              # 87 unit tests, no binary needed
+./gradlew test -DcodexIntegration=true      # + 6 against a real codex (uses real quota)
+./gradlew test -DcodexBench=true            # throughput harness
 ```
+
+To exercise the whole SDK the way a user would, run every sample (each drives the real binary):
+
+```bash
+for s in quickstart.QuickstartKt streaming.StreamingKt steering.SteeringKt \
+         approvals.ApprovalsKt goal.GoalKt; do
+  ./gradlew :samples:run -Psample=dev.kodex.samples.$s --args="/tmp/kodex-scratch"
+done
+```
+
+And to verify the *published artifact* rather than the source tree, consume it from a throwaway
+project with `mavenLocal()` on the repository list and `implementation("dev.kodex:kodex:0.1.0")`.
+That is the only check that catches a packaging mistake — a missing dependency in the POM, or a
+class that never made it into the jar.
 
 Three kinds:
 

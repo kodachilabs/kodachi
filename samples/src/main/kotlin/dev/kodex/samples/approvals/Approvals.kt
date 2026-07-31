@@ -27,7 +27,7 @@ import kotlinx.serialization.json.JsonObject
  * ./gradlew :samples:run -Psample=dev.kodex.samples.ApprovalsKt
  * ```
  */
-fun main(args: Array<String>) = runBlocking {
+fun main(args: Array<String>): Unit = runBlocking {
     val workdir = args.firstOrNull() ?: System.getProperty("java.io.tmpdir")
 
     val policy = object : ServerRequestHandler(ApprovalDecision.ACCEPT) {
