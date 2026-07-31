@@ -101,14 +101,36 @@ publishing {
  * would fail.
  */
 signing {
-    val signingKey: String? = providers.gradleProperty("signingInMemoryKey").orNull
+    // A PGP key is multi-line, and squeezing one into a properties file means escaping every
+    // newline — easy to corrupt silently. `signingKeyFile` pointing at the exported .asc is the
+    // reliable route; the in-memory property still works for CI, where the value comes from a
+    // secret rather than a file.
+    val keyFile: String? = providers.gradleProperty("signingKeyFile").orNull
+        ?: System.getenv("SIGNING_KEY_FILE")
+    val signingKey: String? = keyFile
+        ?.let { path -> File(path.replaceFirst("~", System.getProperty("user.home"))) }
+        ?.takeIf { file ->
+            require(file.isFile) { "signingKeyFile does not exist: ${file.absolutePath}" }
+            true
+        }
+        ?.readText()
+        ?: providers.gradleProperty("signingInMemoryKey").orNull
         ?: System.getenv("SIGNING_KEY")
+
     val signingPassword: String? = providers.gradleProperty("signingInMemoryKeyPassword").orNull
         ?: System.getenv("SIGNING_PASSWORD")
 
     isRequired = signingKey != null
     if (signingKey != null) {
-        useInMemoryPgpKeys(signingKey, signingPassword)
+        require(signingKey.contains("BEGIN PGP PRIVATE KEY")) {
+            "The signing key does not look like an armoured PGP private key. If it came from a " +
+                "properties file, its newlines were probably mangled — use " +
+                "-PsigningKeyFile=/path/to/private.asc instead."
+        }
+        // A passphrase-less key needs an empty string, not null: Gradle's in-memory signatory
+        // provider silently produces no signatory for a null password, and the failure surfaces
+        // much later as "no configured signatory" on the sign task.
+        useInMemoryPgpKeys(signingKey, signingPassword.orEmpty())
         sign(publishing.publications["maven"])
     }
 }
