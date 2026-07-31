@@ -1,3 +1,5 @@
+import java.io.File
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -35,7 +37,23 @@ val javadocJar by tasks.registering(Jar::class) {
     doFirst { layout.buildDirectory.dir("emptyJavadoc").get().asFile.mkdirs() }
 }
 
+/**
+ * Where `publishToCentralStaging` assembles the deployment in Maven repository layout.
+ * `centralBundle` zips exactly this, which is what the Portal expects.
+ */
+val stagingDir = layout.buildDirectory.dir("central-staging")
+
 publishing {
+    repositories {
+        // A file repository, not a remote one: the Central Portal takes an uploaded bundle
+        // rather than a Maven deploy, and staging locally means the exact bytes Central will
+        // validate can be inspected before anything leaves the machine.
+        maven {
+            name = "centralStaging"
+            url = uri(stagingDir)
+        }
+    }
+
     publications {
         create<MavenPublication>("maven") {
             artifactId = "kodex"
@@ -92,6 +110,49 @@ signing {
     if (signingKey != null) {
         useInMemoryPgpKeys(signingKey, signingPassword)
         sign(publishing.publications["maven"])
+    }
+}
+
+/**
+ * The artifact to upload to https://central.sonatype.com — a zip whose root is the group path,
+ * containing the jars, POM, signatures and checksums for one version.
+ *
+ * Central rejects a bundle missing a `.asc` for any artifact, so this fails early rather than
+ * letting the upload be rejected minutes later.
+ */
+val centralBundle by tasks.registering(Zip::class) {
+    group = "publishing"
+    description = "Build the zip to upload to the Maven Central Portal."
+    dependsOn(tasks.named("publishAllPublicationsToCentralStagingRepository"))
+
+    from(stagingDir) {
+        // Maven-metadata is for a deploy, not a bundle; Central rejects its presence.
+        exclude("**/maven-metadata*.*")
+    }
+    archiveFileName.set("kodex-${project.version}-central-bundle.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("central"))
+
+    doFirst {
+        val dir = stagingDir.get().asFile
+        val artifacts = dir.walkTopDown()
+            .filter { it.isFile && !it.name.startsWith("maven-metadata") }
+            .filter { it.extension !in setOf("asc", "md5", "sha1", "sha256", "sha512") }
+            .toList()
+        require(artifacts.isNotEmpty()) { "nothing staged in $dir" }
+
+        val unsigned = artifacts.filterNot { File("${it.path}.asc").exists() }
+        require(unsigned.isEmpty()) {
+            "Central requires a GPG signature for every artifact; unsigned:\n" +
+                unsigned.joinToString("\n") { "  ${it.name}" } +
+                "\n\nSet signingInMemoryKey / signingInMemoryKeyPassword (or SIGNING_KEY / " +
+                "SIGNING_PASSWORD) and rerun."
+        }
+    }
+
+    doLast {
+        logger.lifecycle("")
+        logger.lifecycle("Bundle: ${archiveFile.get().asFile.absolutePath}")
+        logger.lifecycle("Upload it with the command in README > Publishing.")
     }
 }
 

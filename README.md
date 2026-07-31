@@ -161,46 +161,101 @@ avoids that failure mode.)
 
 ## Publishing
 
-The build is Central-ready — full POM, sources jar, javadoc jar, and GPG signing that switches
-on only when a key is present, so local publishing keeps working without one.
-
-Three things need your credentials, and one is a decision:
-
-**1. Pick a namespace.** Central verifies you own it. `dev.kodex` needs a DNS TXT record on
-`kodex.dev`; `io.github.<user>` is verified automatically when you sign in to the
-[Central Portal](https://central.sonatype.com) with GitHub. Switch without editing the build:
+The build stages a Central-shaped deployment and zips it for the
+[Central Portal](https://central.sonatype.com), which replaced the old OSSRH/Nexus deploy.
 
 ```bash
-./gradlew publish -PmavenGroup=io.github.saadaziz9956
+./gradlew :kodex:centralBundle
 ```
 
-**2. Create a GPG key and publish the public half**, which is how Central verifies signatures:
+That produces `kodex/build/central/kodex-<version>-central-bundle.zip`. It refuses to build an
+unsigned bundle and names the unsigned files, because Central would otherwise reject the upload
+minutes later with less detail.
+
+### Step by step
+
+**1. Decide the namespace.** Central verifies you own it.
+
+| Namespace | Verification |
+| --- | --- |
+| `io.github.<user>` | automatic — sign into the Portal with GitHub |
+| `dev.kodex` | a DNS TXT record on `kodex.dev`, which you must own |
+
+Pick with a property, no code change:
 
 ```bash
-gpg --quick-generate-key "Saad Aziz <saad.aziz@imagine.art>" rsa4096 sign never
+./gradlew :kodex:centralBundle -PmavenGroup=io.github.saadaziz9956
+```
+
+**2. Decide the version.** Central never lets a released version be replaced, and rejects
+anything ending `-SNAPSHOT`. `0.1.0` is honest for a first release; `-PmavenVersion=0.146.0` is
+the alternative if you want to track the Codex CLI the way the Python SDK now does.
+
+**3. Create a GPG key** and publish the public half, which is how Central verifies signatures.
+`gnupg` may not be installed:
+
+```bash
+brew install gnupg
+gpg --quick-generate-key "Your Name <you@example.com>" rsa4096 sign never
+gpg --list-secret-keys --keyid-format=long          # note the key id
 gpg --keyserver keys.openpgp.org --send-keys <KEY_ID>
-gpg --armor --export-secret-keys <KEY_ID> > private.asc   # never commit this
+gpg --armor --export-secret-keys <KEY_ID> > private.asc
 ```
 
-Feed it in through `~/.gradle/gradle.properties` (or `SIGNING_KEY` / `SIGNING_PASSWORD` in CI):
+Never commit `private.asc`. Put it in `~/.gradle/gradle.properties` — outside the repo:
 
 ```properties
-signingInMemoryKey=<contents of private.asc, newlines as \n>
-signingInMemoryKeyPassword=<passphrase>
+signingInMemoryKey=<contents of private.asc>
+signingInMemoryKeyPassword=<passphrase, omit the line if none>
 ```
 
-**3. Generate a Portal token** (Central Portal → Account → Generate User Token) and upload. The
-Portal replaced the old OSSRH/Nexus flow, and it now validates Sigstore bundles alongside PGP.
+Gradle signs via BouncyCastle, so `gpg` is only needed to *make* the key, not to use it. In CI,
+`SIGNING_KEY` and `SIGNING_PASSWORD` work instead.
 
-Verify locally before uploading anything — this produces exactly what Central will inspect:
+**4. Generate a Portal token** — Portal → Account → Generate User Token. It gives a username and
+password; the API wants them base64-encoded together.
+
+**5. Verify locally before anything leaves the machine.** This is the same content Central will
+validate:
 
 ```bash
-./gradlew clean build :kodex:publishToMavenLocal
-ls ~/.m2/repository/dev/kodex/kodex/0.1.0/     # jar, sources, javadoc, pom, .asc signatures
+./gradlew clean build                    # 87 tests must pass
+./gradlew :kodex:centralBundle
+unzip -l kodex/build/central/kodex-0.1.0-central-bundle.zip
 ```
 
-A version ending in `-SNAPSHOT` is rejected, and a released version can never be replaced — so
-bump before re-uploading.
+Expect, under `dev/kodex/kodex/0.1.0/`: the jar, sources jar, javadoc jar, `.pom`, `.module`,
+a `.asc` for each, and `.md5`/`.sha1` for each. No `maven-metadata` — a bundle is not a deploy.
+
+**6. Upload.**
+
+```bash
+TOKEN=$(printf '%s:%s' "<portal-username>" "<portal-password>" | base64)
+curl --request POST \
+  --header "Authorization: Bearer $TOKEN" \
+  --form bundle=@kodex/build/central/kodex-0.1.0-central-bundle.zip \
+  'https://central.sonatype.com/api/v1/publisher/upload?name=kodex-0.1.0'
+```
+
+It returns a deployment id. Omitting `publishingType` leaves it `USER_MANAGED`, so it stages for
+review rather than going live — the right default for a first release. Add
+`&publishingType=AUTOMATIC` once you trust the pipeline.
+
+**7. Release it.** Portal → Deployments → your deployment. Validation failures are listed there.
+On publish, expect roughly 10–30 minutes to appear on Central and up to a few hours to reach
+`search.maven.org`.
+
+**8. Tag the release**, so the published version is reproducible from source:
+
+```bash
+git tag -a v0.1.0 -m "kodex 0.1.0" && git push origin v0.1.0
+```
+
+Then it installs anywhere with:
+
+```kotlin
+implementation("dev.kodex:kodex:0.1.0")
+```
 
 ## API
 
