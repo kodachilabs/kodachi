@@ -34,10 +34,11 @@ internal class ProcessTransport(config: CodexConfig) : Transport {
     private val stderrLock = Any()
 
     init {
-        val builder = ProcessBuilder(config.launchArgs())
-        config.cwd?.let { cwd ->
-            // ProcessBuilder fails with a bare IOException when the directory is missing, which
-            // reads as "the binary is broken". Name the actual problem instead.
+        // Validate cwd BEFORE resolving the binary. It is the cheaper check and the more common
+        // mistake, and doing it first means the diagnosis does not depend on whether a codex
+        // binary happens to be installed — otherwise a bad cwd on a machine without codex
+        // reports "binary not found", which sends you looking in the wrong place.
+        val workingDir = config.cwd?.let { cwd ->
             val dir = File(cwd)
             if (!dir.isDirectory) {
                 throw dev.kodachi.TransportClosedException(
@@ -45,8 +46,11 @@ internal class ProcessTransport(config: CodexConfig) : Transport {
                         (if (dir.exists()) "is not a directory" else "does not exist"),
                 )
             }
-            builder.directory(dir)
+            dir
         }
+
+        val builder = ProcessBuilder(config.launchArgs())
+        workingDir?.let { builder.directory(it) }
         builder.environment().putAll(config.env)
         process = try {
             builder.start()

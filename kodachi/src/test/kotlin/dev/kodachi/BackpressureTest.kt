@@ -60,10 +60,13 @@ class BackpressureTest {
     }
 
     @Test
-    fun `a consumer that keeps up never overflows`() = runBlocking(Dispatchers.Default) {
+    fun `a busy turn is delivered losslessly and in order`() = runBlocking(Dispatchers.Default) {
         val transport = FakeTransport()
-        // A cap far below the message count: only a keeping-up consumer can survive it.
-        val config = CodexConfig(turnEventBufferSize = 16, requestTimeoutMillis = 5_000)
+        // Sized to hold the whole burst. An earlier version used a 16-slot buffer to force the
+        // consumer to keep up, which passed locally and failed on a 2-core CI runner — it was
+        // racing the scheduler, not testing the SDK. Losslessness and ordering are the point;
+        // overflow behaviour is covered by the test above.
+        val config = CodexConfig(turnEventBufferSize = 4_096, requestTimeoutMillis = 5_000)
 
         AppServerClient(config, transport).use { client ->
             withTimeout(20_000) {
