@@ -1,0 +1,14 @@
+.gradle/
+build/
+*/build/
+.kotlin/
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# macOS
+.DS_Store
+
+local.properties
