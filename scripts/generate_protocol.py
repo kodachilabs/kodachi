@@ -37,8 +37,8 @@ from collections import OrderedDict
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-OUT_DIR = REPO_ROOT / "kodex" / "src" / "main" / "kotlin" / "dev" / "kodex" / "protocol"
-PACKAGE = "dev.kodex.protocol"
+OUT_DIR = REPO_ROOT / "kodachi" / "src" / "main" / "kotlin" / "dev" / "kodachi" / "protocol"
+PACKAGE = "dev.kodachi.protocol"
 BUNDLE_NAME = "codex_app_server_protocol.v2.schemas.json"
 
 # Envelope types that describe the JSON-RPC framing itself. The transport handles
@@ -1129,7 +1129,7 @@ class Generator:
         lines: list[str] = []
         lines.append("/**")
         lines.append(" * Typed access to every app-server request method, grouped by protocol namespace.")
-        lines.append(" * Reach these through the properties on [dev.kodex.Codex].")
+        lines.append(" * Reach these through the properties on [dev.kodachi.Codex].")
         lines.append(" */")
         lines.append("")
 

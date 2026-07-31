@@ -1,4 +1,4 @@
-# kodex
+# kodachi
 
 A Kotlin SDK for [OpenAI Codex](https://github.com/openai/codex) — the Kotlin counterpart to the
 official Python and TypeScript SDKs, at full protocol parity.
@@ -55,7 +55,7 @@ python3 scripts/generate_protocol.py          # asks your codex binary for its s
 
 That runs `codex app-server generate-json-schema`, merges the schema bundle with the
 per-method files, and emits ~8,000 lines into
-`kodex/src/main/kotlin/dev/kodex/protocol/Generated*.kt`. Regenerate after upgrading
+`kodachi/src/main/kotlin/dev/kodachi/protocol/Generated*.kt`. Regenerate after upgrading
 Codex; never edit those files.
 
 | Generated | Count |
@@ -139,12 +139,12 @@ deliberate design decision here, not a mechanical sync.
 Not yet on Maven Central. Build and consume locally:
 
 ```bash
-./gradlew :kodex:publishToMavenLocal
+./gradlew :kodachi:publishToMavenLocal
 ```
 
 ```kotlin
 dependencies {
-    implementation("dev.kodex:kodex:0.1.0")
+    implementation("dev.kodachi:kodachi:0.1.0")
 }
 ```
 
@@ -165,10 +165,10 @@ The build stages a Central-shaped deployment and zips it for the
 [Central Portal](https://central.sonatype.com), which replaced the old OSSRH/Nexus deploy.
 
 ```bash
-./gradlew :kodex:centralBundle
+./gradlew :kodachi:centralBundle
 ```
 
-That produces `kodex/build/central/kodex-<version>-central-bundle.zip`. It refuses to build an
+That produces `kodachi/build/central/kodachi-<version>-central-bundle.zip`. It refuses to build an
 unsigned bundle and names the unsigned files, because Central would otherwise reject the upload
 minutes later with less detail.
 
@@ -179,12 +179,12 @@ minutes later with less detail.
 | Namespace | Verification |
 | --- | --- |
 | `io.github.<user>` | automatic — sign into the Portal with GitHub |
-| `dev.kodex` | a DNS TXT record on `kodex.dev`, which you must own |
+| `dev.kodachi` | a DNS TXT record on `kodachi.dev`, which you must own |
 
 Pick with a property, no code change:
 
 ```bash
-./gradlew :kodex:centralBundle -PmavenGroup=io.github.saadaziz9956
+./gradlew :kodachi:centralBundle -PmavenGroup=io.github.saadaziz9956
 ```
 
 **2. Decide the version.** Central never lets a released version be replaced, and rejects
@@ -220,11 +220,11 @@ validate:
 
 ```bash
 ./gradlew clean build                    # 87 tests must pass
-./gradlew :kodex:centralBundle
-unzip -l kodex/build/central/kodex-0.1.0-central-bundle.zip
+./gradlew :kodachi:centralBundle
+unzip -l kodachi/build/central/kodachi-0.1.0-central-bundle.zip
 ```
 
-Expect, under `dev/kodex/kodex/0.1.0/`: the jar, sources jar, javadoc jar, `.pom`, `.module`,
+Expect, under `dev/kodachi/kodachi/0.1.0/`: the jar, sources jar, javadoc jar, `.pom`, `.module`,
 a `.asc` for each, and `.md5`/`.sha1` for each. No `maven-metadata` — a bundle is not a deploy.
 
 **6. Upload.**
@@ -233,8 +233,8 @@ a `.asc` for each, and `.md5`/`.sha1` for each. No `maven-metadata` — a bundle
 TOKEN=$(printf '%s:%s' "<portal-username>" "<portal-password>" | base64)
 curl --request POST \
   --header "Authorization: Bearer $TOKEN" \
-  --form bundle=@kodex/build/central/kodex-0.1.0-central-bundle.zip \
-  'https://central.sonatype.com/api/v1/publisher/upload?name=kodex-0.1.0'
+  --form bundle=@kodachi/build/central/kodachi-0.1.0-central-bundle.zip \
+  'https://central.sonatype.com/api/v1/publisher/upload?name=kodachi-0.1.0'
 ```
 
 It returns a deployment id. Omitting `publishingType` leaves it `USER_MANAGED`, so it stages for
@@ -248,13 +248,13 @@ On publish, expect roughly 10–30 minutes to appear on Central and up to a few 
 **8. Tag the release**, so the published version is reproducible from source:
 
 ```bash
-git tag -a v0.1.0 -m "kodex 0.1.0" && git push origin v0.1.0
+git tag -a v0.1.0 -m "kodachi 0.1.0" && git push origin v0.1.0
 ```
 
 Then it installs anywhere with:
 
 ```kotlin
-implementation("dev.kodex:kodex:0.1.0")
+implementation("dev.kodachi:kodachi:0.1.0")
 ```
 
 ## API
@@ -392,8 +392,8 @@ roots, network access, or `/tmp` handling, build a `SandboxPolicy` and pass it v
 Measured, not asserted. `PerfBenchmark` is a warmed in-JVM harness over the real transport:
 
 ```bash
-./gradlew :kodex:test -DcodexBench=true --tests 'dev.kodex.PerfBenchmark'
-./gradlew :kodex:test -DcodexBench=true -DcodexIntegration=true --tests 'dev.kodex.PerfBenchmark'
+./gradlew :kodachi:test -DcodexBench=true --tests 'dev.kodachi.PerfBenchmark'
+./gradlew :kodachi:test -DcodexBench=true -DcodexIntegration=true --tests 'dev.kodachi.PerfBenchmark'
 ```
 
 | Path | Throughput |
@@ -441,31 +441,31 @@ A thin terminal wrapper over the SDK, for exercising it by hand:
 
 ```bash
 ./gradlew :cli:installDist
-export PATH="$PWD/cli/build/install/kodex/bin:$PATH"
+export PATH="$PWD/cli/build/install/kodachi/bin:$PATH"
 ```
 
 ```
-kodex doctor                  # binary, protocol, handshake, account — spends no quota
-kodex login                   # store an API key from $OPENAI_API_KEY or stdin
-kodex whoami                  # account + rate limits
-kodex models                  # models this account can use
-kodex chat "say hello"        # one turn, streamed, read-only
-kodex exec "add a README"     # one turn with writes, auto-approving
-kodex goal "make tests pass"  # a goal across as many turns as it takes
+kodachi doctor                  # binary, protocol, handshake, account — spends no quota
+kodachi login                   # store an API key from $OPENAI_API_KEY or stdin
+kodachi whoami                  # account + rate limits
+kodachi models                  # models this account can use
+kodachi chat "say hello"        # one turn, streamed, read-only
+kodachi exec "add a README"     # one turn with writes, auto-approving
+kodachi goal "make tests pass"  # a goal across as many turns as it takes
 ```
 
 Flags: `--cwd`, `--model`, `--effort`, `--budget`, `--quiet`, and `--isolated` (a throwaway
 `CODEX_HOME`, so a test cannot touch your real credentials).
 
-Start with `kodex doctor` — it checks the binary, the protocol layer, the handshake and the
+Start with `kodachi doctor` — it checks the binary, the protocol layer, the handshake and the
 account without spending a token, so a failure there is a setup problem rather than a code one.
 
 ### Authenticating with an API key
 
 ```bash
 export OPENAI_API_KEY=sk-...
-kodex login
-kodex chat "say hello"
+kodachi login
+kodachi chat "say hello"
 ```
 
 A key is read from the environment or stdin, **never from a flag** — argv is readable by other
@@ -484,10 +484,10 @@ Two things worth knowing:
 
 ```bash
 ./gradlew :samples:run --args="/path/to/repo"                                  # quickstart
-./gradlew :samples:run -Psample=dev.kodex.samples.streaming.StreamingKt      # live event stream
-./gradlew :samples:run -Psample=dev.kodex.samples.approvals.ApprovalsKt      # approval policy
-./gradlew :samples:run -Psample=dev.kodex.samples.steering.SteeringKt        # steer mid-turn
-./gradlew :samples:run -Psample=dev.kodex.samples.goal.GoalKt                # multi-turn goal
+./gradlew :samples:run -Psample=dev.kodachi.samples.streaming.StreamingKt      # live event stream
+./gradlew :samples:run -Psample=dev.kodachi.samples.approvals.ApprovalsKt      # approval policy
+./gradlew :samples:run -Psample=dev.kodachi.samples.steering.SteeringKt        # steer mid-turn
+./gradlew :samples:run -Psample=dev.kodachi.samples.goal.GoalKt                # multi-turn goal
 ```
 
 ## Tests
@@ -503,12 +503,12 @@ To exercise the whole SDK the way a user would, run every sample (each drives th
 ```bash
 for s in quickstart.QuickstartKt streaming.StreamingKt steering.SteeringKt \
          approvals.ApprovalsKt goal.GoalKt; do
-  ./gradlew :samples:run -Psample=dev.kodex.samples.$s --args="/tmp/kodex-scratch"
+  ./gradlew :samples:run -Psample=dev.kodachi.samples.$s --args="/tmp/kodachi-scratch"
 done
 ```
 
 And to verify the *published artifact* rather than the source tree, consume it from a throwaway
-project with `mavenLocal()` on the repository list and `implementation("dev.kodex:kodex:0.1.0")`.
+project with `mavenLocal()` on the repository list and `implementation("dev.kodachi:kodachi:0.1.0")`.
 That is the only check that catches a packaging mistake — a missing dependency in the POM, or a
 class that never made it into the jar.
 

@@ -1,4 +1,4 @@
-rootProject.name = "kodex"
+rootProject.name = "kodachi"
 
 pluginManagement {
     repositories {
@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("kodex", "cli", "samples")
+include("kodachi", "cli", "samples")

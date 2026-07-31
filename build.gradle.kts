@@ -4,10 +4,10 @@ plugins {
 }
 
 subprojects {
-    // Maven Central verifies namespace ownership. `dev.kodex` requires a DNS TXT record on
-    // kodex.dev; `io.github.saadaziz9956` is verified just by signing in with GitHub. Override
+    // Maven Central verifies namespace ownership. `dev.kodachi` requires a DNS TXT record on
+    // kodachi.dev; `io.github.saadaziz9956` is verified just by signing in with GitHub. Override
     // without touching this file:  ./gradlew -PmavenGroup=io.github.saadaziz9956 …
-    group = providers.gradleProperty("mavenGroup").getOrElse("dev.kodex")
+    group = providers.gradleProperty("mavenGroup").getOrElse("dev.kodachi")
     version = providers.gradleProperty("mavenVersion").getOrElse("0.1.0")
 }
 

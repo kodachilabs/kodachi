@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":kodex"))
+    implementation(project(":kodachi"))
 }
 
 kotlin {
@@ -12,9 +12,9 @@ kotlin {
 }
 
 application {
-    // Pick a sample with -Psample=dev.kodex.samples.StreamingKt
+    // Pick a sample with -Psample=dev.kodachi.samples.StreamingKt
     mainClass.set(
-        providers.gradleProperty("sample").orElse("dev.kodex.samples.quickstart.QuickstartKt"),
+        providers.gradleProperty("sample").orElse("dev.kodachi.samples.quickstart.QuickstartKt"),
     )
 }
 
